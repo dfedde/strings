@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'rmagick'
+
+def line(x, y)
+  return x, x*y
+end
+
+def lines(nodes, factor)
+  Array.new(nodes).map.with_index do |_, i|
+    point = line i, factor
+    [point[0], point[1]%nodes]
+  end
+end
+
+class SVG
+  class << self
+    def svg(height:, width:)
+      "
+      <svg height=\"#{height}\" width=\"#{width}\">
+      #{yield.join("\n")}
+      </svg>
+      "
+    end
+
+    def circle(cx:, cy:, r:)
+      "<circle cx=\"#{cx}\" cy=\"#{cy}\" r=\"#{r}\" stroke=\"black\" fill=\"none\" stroke-width=\"3\" />"
+    end
+
+    def line(x1:, y1:, x2:, y2:)
+      "<line x1=\"#{x1}\" y1=\"#{y1}\" x2=\"#{x2}\" y2=\"#{y2}\" stroke=\"red\" stroke-width=\"1\" />"
+    end
+  end
+end
+
+def points(number, cx:, cy:, r:)
+  slice = (Math::PI*2)/number
+  Array.new(number).map.with_index do |_, i|
+    [cx + r * Math.cos(i*slice), cy + r * Math.sin(i*slice)]
+  end
+end
+
+
+def make_svg(number, lines)
+
+  points = points(number, cx:500, cy:500, r: 400)
+
+  dots = points.map do |(x, y)|
+    SVG::circle(cx: x, cy: y, r:3 )
+  end
+
+  strings = lines.map do |(start, finish)|
+    SVG::line(x1: points[start][0], y1: points[start][1], x2: points[finish][0], y2: points[finish][1]) end
+
+  SVG::svg(height: 1000, width: 1000) { dots + strings }
+end
+
+options = Struct.new(:nodes, :factor, :image_path).new
+
+OptionParser.new do |opt|
+  opt.banner = "A utility to help you create string art\nUsage: #{$0} node_count factor [options]"
+  opt.on "-i image_path", "--image=image_path", "The path to save the image to" do |i|
+    options.image_path = i;
+  end
+end.parse!
+
+options.nodes = ARGV[0].to_i
+options.factor = ARGV[1].to_i
+
+calced_lines = lines options.nodes, options.factor
+
+
+p calced_lines
+
+# m = Array.new(options.nodes).map.with_index do |_, i|
+#    calced_lines.select { |line| line.include? i }
+# end
+
+img = Magick::Image.from_blob(make_svg options.nodes, calced_lines) {
+  self.format = 'SVG'
+  self.background_color = 'transparent'
+}[0]
+
+if options.image_path
+  img.write options.image_path
+end
