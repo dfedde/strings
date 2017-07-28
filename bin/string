@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+require 'bundler/inline'
+
+gemfile true do
+ source 'https://rubygems.org'
+ gem 'rmagick'
+end
+
 require 'optparse'
 require 'rmagick'
 
