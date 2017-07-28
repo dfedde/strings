@@ -63,12 +63,15 @@ def make_svg(number, lines)
   SVG::svg(height: 1000, width: 1000) { dots + strings }
 end
 
-options = Struct.new(:nodes, :factor, :image_path).new
+options = Struct.new(:nodes, :factor, :image_path, :display).new
 
 OptionParser.new do |opt|
   opt.banner = "A utility to help you create string art\nUsage: #{$0} node_count factor [options]"
   opt.on "-i image_path", "--image=image_path", "The path to save the image to" do |i|
     options.image_path = i;
+  end
+  opt.on "-d", "--display", "display the image using ImageMagic's display" do |i|
+    options.display = i;
   end
 end.parse!
 
@@ -91,4 +94,8 @@ img = Magick::Image.from_blob(make_svg options.nodes, calced_lines) {
 
 if options.image_path
   img.write options.image_path
+end
+
+if options.display
+  img.display
 end
